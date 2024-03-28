@@ -1,0 +1,7 @@
+{
+  "aliceExpectedAmount": 3,
+  "bobExpectedAmount": 5,
+  
+  "buyY": 3,
+  "sellX": 5
+}
