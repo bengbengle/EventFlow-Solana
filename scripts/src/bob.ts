@@ -54,15 +54,15 @@ const bob = async () => {
 
   const claimInstruction = new TransactionInstruction({
     programId: questProgramId,
-    data: Buffer.from(Uint8Array.of(1, ...new BN(1).toArray("le", 8))),
+    data: Buffer.from(Uint8Array.of(1, ...new BN(1).toArray("le", 8))),// [1, 1]
     keys: [
       { pubkey: claimer_pubkey, isSigner: true, isWritable: false },                          // 1  signer bob
-      { pubkey: ata_claimer_pubkey, isSigner: false, isWritable: true },                      // 3  receiver bob token account pubkey
-      { pubkey: ata_quest, isSigner: false, isWritable: true },                               // 4  ata_quest account pubkey
-      { pubkey: publisher, isSigner: false, isWritable: true },                               // 5  alice pub key
-      { pubkey: quest_pubkey, isSigner: false, isWritable: true },                            // 7  quest_account
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },                       // 8  token_program
-      { pubkey: PDA[0], isSigner: false, isWritable: false },                                 // 9  pda_account
+      { pubkey: ata_claimer_pubkey, isSigner: false, isWritable: true },                      // 2  receiver bob token account pubkey
+      { pubkey: ata_quest, isSigner: false, isWritable: true },                               // 3  ata_quest account pubkey
+      { pubkey: publisher, isSigner: false, isWritable: true },                               // 4  publisher pubkey
+      { pubkey: quest_pubkey, isSigner: false, isWritable: true },                            // 5  quest_account
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },                       // 6  token_program
+      { pubkey: PDA[0], isSigner: false, isWritable: false },                                 // 7  pda_account
     ]
   });
 

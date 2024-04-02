@@ -40,14 +40,28 @@ const alice = async () => {
   const quest_ata_KeyPair = new Keypair();
   const quest_ata_pubkey = quest_ata_KeyPair.publicKey;
 
-  const ata_alice_Pubkey = getPublicKey("ata_alice");
+  const sender_ata_pubkey = getPublicKey("ata_alice");
   
   const USDT = getPublicKey("USDT");
   
   const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 
+ 
+  const _space = QuestAccountLayout.span;
+  const _lamports = await connection.getMinimumBalanceForRentExemption(QuestAccountLayout.span);
+
   const space = AccountLayout.span;
   const lamports = await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+
+
+  // create quest account 
+  const createQuestAccountIx = SystemProgram.createAccount({
+    programId: questProgramId,                 
+    space: _space,     
+    lamports: _lamports,
+    fromPubkey: alicePubKey,                    
+    newAccountPubkey: quest_pubkey,             
+  });
 
   // create quest ata usdt account
   const createAccountIx = SystemProgram.createAccount({
@@ -58,7 +72,7 @@ const alice = async () => {
     newAccountPubkey: quest_ata_pubkey,
   });
 
-  // init quest ata usdt account
+  // init quest ata usdt account with USDT token
   const createInitAccountIx = Token.createInitAccountInstruction(
     TOKEN_PROGRAM_ID,   
     USDT,                       // mint key
@@ -70,26 +84,14 @@ const alice = async () => {
   // transfer 8 usdt to quest_ata_pubkey
   const transferTokenIx = Token.createTransferInstruction(
     TOKEN_PROGRAM_ID,
-    ata_alice_Pubkey,                 // source
+    sender_ata_pubkey,                // source
     quest_ata_pubkey,                 // destination
     alicePubKey,                      // owner
     [],                               // multiSigners
     8                                 // amount
   );
-  
 
-  const _space = QuestAccountLayout.span;
-  const _lamports = await connection.getMinimumBalanceForRentExemption(QuestAccountLayout.span);
-
-  // create quest account 
-  const createQuestAccountIx = SystemProgram.createAccount({
-    programId: questProgramId,                 
-    space: _space,     
-    lamports: _lamports,
-    fromPubkey: alicePubKey,                    
-    newAccountPubkey: quest_pubkey,             
-  });
-
+  // transfer 2 tokens to 
   const createQuestIx = new TransactionInstruction({
     programId: questProgramId,
     keys: [
@@ -135,18 +137,18 @@ const alice = async () => {
   
   writePublicKey(quest_pubkey, "quest");
 
-  const questAccount = await connection.getAccountInfo(quest_Keypair.publicKey);
-  const _decodedQuest = QuestAccountLayout.decode(questAccount!.data) as QuestState;
+  // const questAccount = await connection.getAccountInfo(quest_Keypair.publicKey);
+  // const _decodedQuest = QuestAccountLayout.decode(questAccount!.data) as QuestState;
   
-  const ata_quest_pubkey = new PublicKey(_decodedQuest.questAtaPubkey);
-  writePublicKey(ata_quest_pubkey, "ata_quest");
+  // const ata_quest_pubkey = new PublicKey(_decodedQuest.questAtaPubkey);
+  // writePublicKey(ata_quest_pubkey, "ata_quest");
 
   console.table([
     {
       "Alice USDT Token Account ": await getTokenBalance(getPublicKey("ata_alice"), connection),
       "Bob USDT Token Account": await getTokenBalance(getPublicKey("ata_bob"), connection),
       "USDT Token Account": await getTokenBalance(quest_ata_KeyPair.publicKey, connection),
-      "Quest USDT": await getTokenBalance(ata_quest_pubkey, connection),
+      // "Quest USDT": await getTokenBalance(ata_quest_pubkey, connection),
     },
   ]);
 

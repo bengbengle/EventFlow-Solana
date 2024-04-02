@@ -21,12 +21,13 @@ impl Processor {
         accounts: &[AccountInfo],
         instruction_data: &[u8],
     ) -> ProgramResult {
+
         let instruction = QuestInstruction::unpack(instruction_data)?;
 
         match instruction {
             QuestInstruction::QuestCreate { amount } => {
                 msg!("Instruction: QuestCreate");
-                Self::_process_create_quest(program_id, accounts, amount)
+                Self::_process_create_quest(program_id, accounts)
             }
 
             QuestInstruction::QuestClaim { amount } => {
@@ -36,24 +37,20 @@ impl Processor {
         }
     }
 
-    fn _process_create_quest(
-        program_id: &Pubkey,
-        accounts: &[AccountInfo],
-        amount: u64,
-    ) -> ProgramResult {
-        let account_info_iter = &mut accounts.iter(); //  accounts
+    fn _process_create_quest(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 
-        let publisher = next_account_info(account_info_iter)?; // 1, publisher account
+        let account_info_iter = &mut accounts.iter();                                       //  accounts
+
+        let publisher = next_account_info(account_info_iter)?;                              // 1, publisher account
 
         if !publisher.is_signer {
             return Err(ProgramError::MissingRequiredSignature);
         }
 
-        let quest_token_account = next_account_info(account_info_iter)?; // 2 alice quest ata usdt account
-        let quest_account = next_account_info(account_info_iter)?; // 3 alice quest account
+        let quest_token_account = next_account_info(account_info_iter)?;                    // 2 alice quest ata usdt account
+        let quest_account = next_account_info(account_info_iter)?;                          // 3 alice quest account
 
-        let rent = &Rent::from_account_info(next_account_info(account_info_iter)?)?; // 4 rent account
-
+        let rent = &Rent::from_account_info(next_account_info(account_info_iter)?)?;        // 4 rent account
         if !rent.is_exempt(quest_account.lamports(), quest_account.data_len()) {
             return Err(QuestError::NotRentExempt.into());
         }
@@ -64,24 +61,24 @@ impl Processor {
         }
 
         quest_info.is_initialized = true;
-        quest_info.publisher_pubkey = *publisher.key; // alice pub key
-        quest_info.quest_ata_pubkey = *quest_token_account.key; //
+        quest_info.publisher_pubkey = *publisher.key;                                       // alice pub key
+        quest_info.quest_ata_pubkey = *quest_token_account.key;                             //
 
         Quest::pack(quest_info, &mut quest_account.try_borrow_mut_data()?)?;
 
         // token program
-        let token_program = next_account_info(account_info_iter)?; // 5, token program
+        let token_program = next_account_info(account_info_iter)?;                          // 5, token program
 
-        let (pda, _nonce) = Pubkey::find_program_address(&[b"quest"], program_id);
+        let (pda, _nonce) = Pubkey::find_program_address(&[b"quest"], program_id);          // pad account
 
         // transfer token account ownership from publisher to quest pda
         let owner_change_ix = spl_token::instruction::set_authority(
-            token_program.key,                                   // token_program_id
-            quest_token_account.key,                             // owned_pubkey program_id
-            Some(&pda),                                          // new_authority_pubkey
-            spl_token::instruction::AuthorityType::AccountOwner, // authority_type, 设置令牌帐户的所有者
-            publisher.key,                                       // owner_pubkey
-            &[&publisher.key],                                   // signer_pubkeys
+            token_program.key,                                                      // token_program_id
+            quest_token_account.key,                                                // old_authority_pubkey 
+            Some(&pda),                                                             // new_authority_pubkey
+            spl_token::instruction::AuthorityType::AccountOwner,                    // authority_type, 设置令牌帐户的所有者
+            publisher.key,                                                          // owner_pubkey
+            &[&publisher.key],                                                      // signer_pubkeys
         )?;
 
         msg!("Calling the token program to transfer token account ownership...");
@@ -104,16 +101,16 @@ impl Processor {
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
 
-        let receiver = next_account_info(account_info_iter)?; // 第 1 账户
+        let receiver = next_account_info(account_info_iter)?;                                    // 第 1 账户, claimer signer
 
         if !receiver.is_signer {
             return Err(ProgramError::MissingRequiredSignature);
         }
 
-        let receive_account = next_account_info(account_info_iter)?; // 第 3 账户
+        let receive_account = next_account_info(account_info_iter)?;                            // 第 2 账户, claimer token account
         let receive_pubkey = receive_account.key;
 
-        let quest_ata_account = next_account_info(account_info_iter)?; // 第 4 账户
+        let quest_ata_account = next_account_info(account_info_iter)?;                          // 第 3 账户, quest token account
 
         let quest_ata_info = TokenAccount::unpack(&quest_ata_account.try_borrow_data()?)?;
 
@@ -121,9 +118,9 @@ impl Processor {
             return Err(QuestError::ExpectedAmountMismatch.into());
         }
 
-        let publisher = next_account_info(account_info_iter)?; // 第 5 账户, alice pubkey
+        let publisher = next_account_info(account_info_iter)?;                                  // 第 4 账户, publisher account
 
-        let quest_account = next_account_info(account_info_iter)?; // 第 7 账户
+        let quest_account = next_account_info(account_info_iter)?;                              // 第 5 账户, quest account
 
         let mut quest_info = Quest::unpack(&quest_account.try_borrow_data()?)?;
 
@@ -135,8 +132,8 @@ impl Processor {
             return Err(ProgramError::InvalidAccountData);
         }
 
-        let token_program = next_account_info(account_info_iter)?; // 第 8 账户
-        let pda_account = next_account_info(account_info_iter)?; // 第 9 账户
+        let token_program = next_account_info(account_info_iter)?;                              // 第 6 账户, token_program
+        let pda_account = next_account_info(account_info_iter)?;                                // 第 7 账户, pda_account
 
         let (pda, nonce) = Pubkey::find_program_address(&[b"quest"], program_id);
 
